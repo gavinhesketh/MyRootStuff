@@ -1,0 +1,6 @@
+Add -lMyRootStuff to start of list in /scratch/HEPsoftware/local/bin/root-config
+
+eg
+
+rootlibs=" -lMyRootStuff -lCore -lRIO -lNet -lHist -lGraf -lGraf3d -lGpad -lTree \
+             -lRint -lPostscript -lMatrix -lPhysics -lMathCore -lThread"
