@@ -11,23 +11,24 @@ using namespace MyRootStuff;
 void MakeWebPage(std::ofstream &out, TDirectory *input, TString workingdir );
 
 void WebCanvas(std::ofstream &out, TString workingdir, TCanvas *c) {
-  cout<<"In webcanvas"<<endl;
-
+  // cout<<"In webcanvas"<<endl;
+ 
   TString figfile = workingdir+"/figures/"+(TString)c->GetName();
   TString figfilelink = "figures/"+(TString)c->GetName();
   
-  c->Print(figfile+".eps");
-  system( "convert -density 100 "+figfile+".eps "+figfile+".gif");
-  system( "convert -density 40 "+figfile+".eps "+figfile+"_thumb.gif");
-  out<<"<div style=\"float:left; font-size:smaller; font-weight:bold;\">"<<endl;
+  c->Print(figfile+".pdf");
+  system( "convert -density 144 -trim +repage "+figfile+".pdf "+figfile+".gif");
+  system( "convert -density 40 -trim +repage "+figfile+".pdf "+figfile+"_thumb.gif");
+
   
+  out<<"<div style=\"float:left; font-size:smaller; font-weight:bold;\">"<<endl;
   out<< "    <td align=\"center\">" <<endl;
-  out<< c->GetName() <<" <a href=\""+figfilelink+".gif\">gif</a>, <a href=\""+figfilelink+".eps\">eps</a><br>"<<endl;
+  out<< c->GetName() <<" <a href=\""+figfilelink+".gif\">gif</a>, <a href=\""+figfilelink+".pdf\">pdf</a><br>"<<endl;
   out<< "      <a href=\""+figfilelink+".gif\"> <img src=\""+figfilelink+"_thumb.gif\"> </a>" <<endl;
-  //out<< "      <br> ${img1} <br><a href=\"${target}/${png1}\">[${target}]</a> <a href=\"${eps1}\">[eps]</a>  "  <<endl;
   out<< "    </td>  " <<endl;
   out<< "    </div>  " <<endl;
-  
+
+  //  cout<<"End webcanvas"<<endl;
   return;
 }
 
@@ -64,8 +65,6 @@ int main(int argc, char **argv) {
   // out<<"<p><a href=\"../index.html\">Back to index</a></p>\n"<<endl;
   out<<"<div style=\"float:none; overflow:auto; width:100%\">\n"<<endl;
     
-  RETURN_CANVAS(true);
-  
   MakeWebPage(out, inputfile, workingdir);
  
   out<< "    </div>  " <<endl;
@@ -102,13 +101,15 @@ void MakeWebPage(std::ofstream &out, TDirectory *input, TString workingdir ) {
     if ( obj->IsA()->InheritsFrom( TH1::Class() ) ) {
       // descendant of TH1 -> draw it!
       TH1 *h1 = (TH1*)obj;
-      TCanvas * c = Draw(h1);
+      TCanvas * c = new TCanvas();
+      c->cd();
+      h1->DrawCopy();
       WebCanvas(out, workingdir, c);
       delete c;
       delete h1;
     }
     else if ( obj->IsA()->InheritsFrom( TCanvas::Class() ) ) {
-      // descendant of TH1 -> draw it!
+      // descendant of TCanvas -> draw it!
       TCanvas * c = (TCanvas*)obj;
       WebCanvas(out, workingdir, c);
       delete c;

@@ -9,11 +9,13 @@ ROOTLIBS=$(shell root-config --libs)
 
 SOURCES = TBrowser.cpp root-mkhtml.cpp
 
-all :  $(SOURCES:.cpp=) libMyRootStuff.so
+all :  $(SOURCES:.cpp=)
+
+#libMyRootStuff.so
 
 clean:
 	rm $(SOURCES:.cpp=)
-	rm libMyRootStuff.so
+#	rm libMyRootStuff.so
 	rm ${ROOTSYS}/lib/*MyRootStuff*
 	rm ${ROOTSYS}/include/*MyRootStuff*
 
