@@ -104,6 +104,7 @@ void MakeWebPage(std::ofstream &out, TDirectory *input, TString workingdir ) {
       // descendant of TH2 -> draw it!
       TH2 *h2 = (TH2*)obj;
       TCanvas * c = new TCanvas();
+      c->SetName(h2->GetName());
       c->cd();
       h2->DrawCopy("COLZ");
       WebCanvas(out, workingdir, c);
@@ -114,6 +115,7 @@ void MakeWebPage(std::ofstream &out, TDirectory *input, TString workingdir ) {
       // descendant of TH1 -> draw it!
       TH1 *h1 = (TH1*)obj;
       TCanvas * c = new TCanvas();
+      c->SetName(h1->GetName());
       c->cd();
       h1->DrawCopy();
       WebCanvas(out, workingdir, c);
