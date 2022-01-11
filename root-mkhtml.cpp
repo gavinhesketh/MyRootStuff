@@ -15,14 +15,13 @@ void MakeWebPage(std::ofstream &out, TDirectory *input, TString workingdir );
 
 void WebCanvas(std::ofstream &out, TString workingdir, TCanvas *c) {
   // cout<<"In webcanvas"<<endl;
- 
   TString figfile = workingdir+"/figures/"+(TString)c->GetName();
   TString figfilelink = "figures/"+(TString)c->GetName();
   
   c->Print(figfile+".pdf");
   system( "convert -density 144 -trim +repage "+figfile+".pdf "+figfile+".gif");
   system( "convert -density 40 -trim +repage "+figfile+".pdf "+figfile+"_thumb.gif");
-
+  
   
   out<<"<div style=\"float:left; font-size:smaller; font-weight:bold;\">"<<endl;
   out<< "    <td align=\"center\">" <<endl;
@@ -30,7 +29,7 @@ void WebCanvas(std::ofstream &out, TString workingdir, TCanvas *c) {
   out<< "      <a href=\""+figfilelink+".gif\"> <img src=\""+figfilelink+"_thumb.gif\"> </a>" <<endl;
   out<< "    </td>  " <<endl;
   out<< "    </div>  " <<endl;
-
+  
   //  cout<<"End webcanvas"<<endl;
   return;
 }
@@ -125,7 +124,7 @@ void MakeWebPage(std::ofstream &out, TDirectory *input, TString workingdir ) {
       // descendant of TCanvas -> draw it!
       TCanvas * c = (TCanvas*)obj;
       WebCanvas(out, workingdir, c);
-      delete c;
+      //  delete c;
     }
     else if ( obj->IsA()->InheritsFrom( TDirectory::Class() ) ) {
       // it's a subdirectory
