@@ -1,11 +1,14 @@
-#include "MyRootStuff.h"
 #include "TFile.h"
 #include "TH1.h"
+#include "TH2.h"
+#include "TCanvas.h"
 #include "TTree.h"
 #include "TKey.h"
+#include <iostream>
 #include <fstream>
 
-using namespace MyRootStuff;
+using std::cout;
+using std::endl;
 
 //void MakeWebPage(std::ofstream out, TDirectory *input );
 void MakeWebPage(std::ofstream &out, TDirectory *input, TString workingdir );
@@ -98,7 +101,17 @@ void MakeWebPage(std::ofstream &out, TDirectory *input, TString workingdir ) {
     // read object from first source file
     TObject *obj = key->ReadObj();
     
-    if ( obj->IsA()->InheritsFrom( TH1::Class() ) ) {
+    if ( obj->IsA()->InheritsFrom( TH2::Class() ) ) {
+      // descendant of TH2 -> draw it!
+      TH2 *h2 = (TH2*)obj;
+      TCanvas * c = new TCanvas();
+      c->cd();
+      h2->DrawCopy("COLZ");
+      WebCanvas(out, workingdir, c);
+      delete c;
+      delete h2;
+    }
+    else if ( obj->IsA()->InheritsFrom( TH1::Class() ) ) {
       // descendant of TH1 -> draw it!
       TH1 *h1 = (TH1*)obj;
       TCanvas * c = new TCanvas();
