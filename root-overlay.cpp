@@ -1,6 +1,7 @@
 #include "TFile.h"
 #include "TChain.h"
 #include "TH1.h"
+#include "TH2.h"
 #include "TEfficiency.h"
 #include "TLegend.h"
 #include "TCanvas.h"
@@ -99,6 +100,7 @@ int main(int argc, char **argv) {
 
   FileList = new TList();
   for(int i=1; i<argc; i++) {
+    cout<<"Adding file "<<argv[i]<<endl;
     FileList->Add( TFile::Open(argv[i]) );
   }
 
@@ -146,10 +148,20 @@ void OverlayPlots( TDirectory *target, TList *sourcelist ) {
       first_source->cd( path );
       TObject *obj = key->ReadObj();
 
-      if ( obj->IsA()->InheritsFrom( TH1::Class() ) ) {
+
+
+      //=======================================================================
+      //==================     TH1    =========================================
+      //=======================================================================
+      if ( obj->IsA()->InheritsFrom( TH2::Class() ) ) {
+	//ignore for now...
+      }
+      else if ( obj->IsA()->InheritsFrom( TH1::Class() ) ) {
          // descendant of TH1 -> plot it!
 
 	cout << "Drawing histogram " << obj->GetName() << endl;
+
+       
 	TH1 *h1 = (TH1*)obj;
 	TH1 * denom = (TH1*)h1->Clone();
 	bool first_ratio=true;
@@ -158,9 +170,9 @@ void OverlayPlots( TDirectory *target, TList *sourcelist ) {
 	TLegend * leg = new TLegend(0.7,0.78, 1,1);
 
 	c->cd(1);
-
+	h1->SetTitle(first_source->GetName());
 	h1->DrawCopy("PLC PMC");
-	
+       	
 	// loop over all source files and add the content of the
 	// correspondant histogram to the one pointed to by "h1"
 	TFile *nextsource = (TFile*)sourcelist->After( first_source );
@@ -172,9 +184,10 @@ void OverlayPlots( TDirectory *target, TList *sourcelist ) {
 	  if (key2) {
 	    c->cd(1);
 	    TH1 *h2 = (TH1*)key2->ReadObj();
+	    h2->SetTitle(nextsource->GetName());
 	    h2->DrawCopy("SAME PLC PMC");
-	    delete h2;
 
+	    c->cd(2);
 	    TH1 * ratio = (TH1*)h2->Clone();
 	    prep(ratio, 1.5);
 	    ratio->SetAxisRange(RATIOYMIN_, RATIOYMAX_, "Y");
@@ -187,6 +200,9 @@ void OverlayPlots( TDirectory *target, TList *sourcelist ) {
 	       first_ratio=false;
 	    }
 	    else ratio->DrawCopy("SAME PLC PMC");
+	    delete h2;
+	    delete ratio;
+
 	  }
 	  nextsource = (TFile*)sourcelist->After( nextsource );
 	}
@@ -203,12 +219,22 @@ void OverlayPlots( TDirectory *target, TList *sourcelist ) {
 	leg->Draw();
 	c->cd(2);
 	gPad->RedrawAxis();
-
-        target->cd();
-	c->Write( key->GetName() );
-	delete c;
+	
+	 target->cd();
+       
+	 c->Write();
+	
+	 delete c;
 	
       }
+
+
+
+
+      //=======================================================================
+      //==================     TEfficiency   ==================================
+      //=======================================================================
+
       else if ( obj->IsA()->InheritsFrom( TEfficiency::Class() ) ) {
 	// descendant of TEfficiency -> plot it!
 	cout << "Drawing efficiency histogram " << obj->GetName() << endl;
@@ -254,19 +280,6 @@ void OverlayPlots( TDirectory *target, TList *sourcelist ) {
          << obj->GetName() << " title: " << obj->GetTitle() << endl;
       }
 
-      // now write the merged histogram (which is "in" obj) to the target file
-      // note that this will just store obj in the current directory level,
-      // which is not persistent until the complete directory itself is stored
-      // by "target->Write()" below
-      if ( obj ) {
-         target->cd();
-
-         //!!if the object is a tree, it is stored in globChain...
-         if(obj->IsA()->InheritsFrom( TTree::Class() ))
-            globChain->Merge(target->GetFile(),0,"keep");
-         else
-            obj->Write( key->GetName() );
-      }
 
    } // while ( ( TKey *key = (TKey*)nextkey() ) )
 
