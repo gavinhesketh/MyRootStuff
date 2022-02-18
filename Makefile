@@ -7,7 +7,7 @@ C_FLAGS = -g
 ROOTCFLAGS=$(shell root-config --cflags) #-fPIC
 ROOTLIBS=$(shell root-config --libs)
 
-SOURCES = TBrowser.cpp root-mkhtml.cpp
+SOURCES = TBrowser.cpp root-mkhtml.cpp root-overlay.cpp
 
 all :  $(SOURCES:.cpp=)
 
