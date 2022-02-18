@@ -2,6 +2,7 @@
 #include "TChain.h"
 #include "TH1.h"
 #include "TEfficiency.h"
+#include "TLegend.h"
 #include "TCanvas.h"
 #include "TFrame.h"
 #include "TStyle.h"
@@ -12,7 +13,44 @@
 using std::cout;
 using std::endl;
 
+float RATIOYMIN_ = 0.51;
+float RATIOYMAX_ = 1.99;
+
+
 void OverlayPlots( TDirectory *target, TList *sourcelist );
+
+
+
+void prep( TH1 * p, float scale) {
+
+  float SCALE_ = 0.05;
+  
+  gStyle->SetOptTitle(0);
+  p->GetXaxis()->SetLabelFont(42);
+  p->GetYaxis()->SetLabelFont(42);
+  p->GetXaxis()->SetLabelSize(scale*SCALE_);
+  p->GetYaxis()->SetLabelSize(scale*SCALE_);
+
+  p->GetXaxis()->SetTitleFont(42);
+  p->GetYaxis()->SetTitleFont(42);
+  p->GetXaxis()->SetTitleSize(scale*SCALE_);
+  p->GetYaxis()->SetTitleSize(scale*SCALE_);
+  p->GetXaxis()->SetTitleOffset(1.2);
+  p->GetYaxis()->SetTitleOffset(1.2);
+
+  //for ratio pane?
+  //  p->GetXaxis()->SetTitleOffset(1);
+  //  p->GetYaxis()->SetTitleOffset(0.8);
+
+  p->SetStats(0);
+  p->SetLineWidth(2);
+  p->SetMarkerSize(1.5);
+  p->SetFillColor(0);
+
+}
+
+
+
 
 void prep(TPad *p) {
   //  p->DrawFrame(0,0,10,1);
@@ -25,7 +63,6 @@ void prep(TPad *p) {
 }
 
 TCanvas * Canvas(TString name) {
-  gStyle->SetOptTitle(0);
   TCanvas * c1 = new TCanvas(name, name, 800, 800);
   c1->cd();
 
@@ -64,8 +101,13 @@ int main(int argc, char **argv) {
   for(int i=1; i<argc; i++) {
     FileList->Add( TFile::Open(argv[i]) );
   }
-    
+
   
+  gStyle->SetPalette(kCMYK);//VisibleSpectrum); //LightTemperature); //kGreenRedViolet);
+  TColor::InvertPalette();
+  gStyle->SetOptTitle(0);
+
+
   Target = TFile::Open( "result.root", "RECREATE" );
   
   OverlayPlots( Target, FileList );
@@ -108,24 +150,64 @@ void OverlayPlots( TDirectory *target, TList *sourcelist ) {
          // descendant of TH1 -> plot it!
 
 	cout << "Drawing histogram " << obj->GetName() << endl;
-         TH1 *h1 = (TH1*)obj;
+	TH1 *h1 = (TH1*)obj;
+	TH1 * denom = (TH1*)h1->Clone();
+	bool first_ratio=true;
+	
+	TCanvas * c = Canvas(h1->GetName());
+	TLegend * leg = new TLegend(0.7,0.78, 1,1);
 
-         // loop over all source files and add the content of the
-         // correspondant histogram to the one pointed to by "h1"
-         TFile *nextsource = (TFile*)sourcelist->After( first_source );
-         while ( nextsource ) {
-	   
-	   // make sure we are at the correct directory level by cd'ing to path
-	   nextsource->cd( path );
-	   TKey *key2 = (TKey*)gDirectory->GetListOfKeys()->FindObject(h1->GetName());
-	   if (key2) {
-	     TH1 *h2 = (TH1*)key2->ReadObj();
-	     h1->Add( h2 );
-	     delete h2;
-	   }
-	   
-	   nextsource = (TFile*)sourcelist->After( nextsource );
-         }
+	c->cd(1);
+
+	h1->DrawCopy("PLC PMC");
+	
+	// loop over all source files and add the content of the
+	// correspondant histogram to the one pointed to by "h1"
+	TFile *nextsource = (TFile*)sourcelist->After( first_source );
+	while ( nextsource ) {
+    
+	  // make sure we are at the correct directory level by cd'ing to path
+	  nextsource->cd( path );
+	  TKey *key2 = (TKey*)gDirectory->GetListOfKeys()->FindObject(h1->GetName());
+	  if (key2) {
+	    c->cd(1);
+	    TH1 *h2 = (TH1*)key2->ReadObj();
+	    h2->DrawCopy("SAME PLC PMC");
+	    delete h2;
+
+	    TH1 * ratio = (TH1*)h2->Clone();
+	    prep(ratio, 1.5);
+	    ratio->SetAxisRange(RATIOYMIN_, RATIOYMAX_, "Y");
+	    ratio->SetFillColor(0);
+	    ratio->Divide(denom);
+	    ratio->SetYTitle("ratio");
+	    if(first_ratio) {
+	       ratio->SetAxisRange(RATIOYMIN_, RATIOYMAX_, "Y");
+	       ratio->DrawCopy("PLC PMC");
+	       first_ratio=false;
+	    }
+	    else ratio->DrawCopy("SAME PLC PMC");
+	  }
+	  nextsource = (TFile*)sourcelist->After( nextsource );
+	}
+	c->cd(1);
+	TList *lop=gPad->GetListOfPrimitives();
+	TIter next(lop);
+	TObject *o=0;
+	while( (o=next()) ) {
+	  if( o->InheritsFrom(TH1::Class())  ) {
+	    leg->AddEntry(o, o->GetTitle(), "LEP");
+	  }
+	}
+	gPad->RedrawAxis();
+	leg->Draw();
+	c->cd(2);
+	gPad->RedrawAxis();
+
+        target->cd();
+	c->Write( key->GetName() );
+	delete c;
+	
       }
       else if ( obj->IsA()->InheritsFrom( TEfficiency::Class() ) ) {
 	// descendant of TEfficiency -> plot it!
