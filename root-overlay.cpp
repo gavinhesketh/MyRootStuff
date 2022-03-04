@@ -113,7 +113,9 @@ int main(int argc, char **argv) {
   Target = TFile::Open( "result.root", "RECREATE" );
   
   OverlayPlots( Target, FileList );
- 
+
+  cout<<"Finish"<<endl;
+  
   return 1;
 
 }
@@ -161,70 +163,38 @@ void OverlayPlots( TDirectory *target, TList *sourcelist ) {
 
 	cout << "Drawing histogram " << obj->GetName() << endl;
 
-       
-	TH1 *h1 = (TH1*)obj;
-	TH1 * denom = (TH1*)h1->Clone();
-	bool first_ratio=true;
 	
-	TCanvas * c = Canvas(h1->GetName());
-	TLegend * leg = new TLegend(0.7,0.78, 1,1);
-
-	c->cd(1);
+	TH1 *h1 = (TH1*)obj;
+	h1->SetDirectory(0);
 	h1->SetTitle(first_source->GetName());
-	h1->DrawCopy("PLC PMC");
-       	
-	// loop over all source files and add the content of the
-	// correspondant histogram to the one pointed to by "h1"
+	
+	std::vector<TH1*> plots;
+	plots.push_back(h1);
+
 	TFile *nextsource = (TFile*)sourcelist->After( first_source );
 	while ( nextsource ) {
-    
 	  // make sure we are at the correct directory level by cd'ing to path
 	  nextsource->cd( path );
 	  TKey *key2 = (TKey*)gDirectory->GetListOfKeys()->FindObject(h1->GetName());
 	  if (key2) {
-	    c->cd(1);
 	    TH1 *h2 = (TH1*)key2->ReadObj();
+	    h2->SetDirectory(0);
 	    h2->SetTitle(nextsource->GetName());
-	    h2->DrawCopy("SAME PLC PMC");
-
-	    c->cd(2);
-	    TH1 * ratio = (TH1*)h2->Clone();
-	    prep(ratio, 1.5);
-	    ratio->SetAxisRange(RATIOYMIN_, RATIOYMAX_, "Y");
-	    ratio->SetFillColor(0);
-	    ratio->Divide(denom);
-	    ratio->SetYTitle("ratio");
-	    if(first_ratio) {
-	       ratio->SetAxisRange(RATIOYMIN_, RATIOYMAX_, "Y");
-	       ratio->DrawCopy("PLC PMC");
-	       first_ratio=false;
-	    }
-	    else ratio->DrawCopy("SAME PLC PMC");
-	    delete h2;
-	    delete ratio;
-
+	    plots.push_back(h2);
 	  }
 	  nextsource = (TFile*)sourcelist->After( nextsource );
 	}
-	c->cd(1);
-	TList *lop=gPad->GetListOfPrimitives();
-	TIter next(lop);
-	TObject *o=0;
-	while( (o=next()) ) {
-	  if( o->InheritsFrom(TH1::Class())  ) {
-	    leg->AddEntry(o, o->GetTitle(), "LEP");
-	  }
-	}
-	gPad->RedrawAxis();
-	leg->Draw();
-	c->cd(2);
-	gPad->RedrawAxis();
+	delete nextsource;
+      	
+	TCanvas * c = Canvas(h1->GetName());
+	c->cd();
+	plots[0]->DrawCopy();	
+	for(int i=1; i<plots.size(); i++) plots[i]->DrawCopy("SAME");	
+	target->cd();
 	
-	 target->cd();
-       
-	 c->Write();
-	
-	 delete c;
+	c->Write();
+
+	//	delete c;
 	
       }
 
